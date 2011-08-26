@@ -2,7 +2,7 @@ from django.db import models
 from core.models import Slugable, Unique
 from django.utils.translation import ugettext_lazy as _
 
-class Consumer(Slugable, Unique):
+class Consumer(models.Model):
 	"""
 		OAuth consumer class.  Authentication credentials go in here.
 	"""
