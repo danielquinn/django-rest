@@ -1,0 +1,3 @@
+Requires:
+    oauth2
+    django

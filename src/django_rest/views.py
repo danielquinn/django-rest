@@ -85,9 +85,9 @@ class RestView(object):
 
     def _output_json(self, payload):
 
-        from simplejson import dumps
+        from django.core.serializers.json import simplejson
 
-        return dumps(payload)
+        return simplejson.dumps(payload)
 
 
     def _authenticate_signature(self, request):
