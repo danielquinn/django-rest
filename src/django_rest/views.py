@@ -19,7 +19,7 @@ class RestView(object):
         del(kwa["__method"])
 
         from django.core.exceptions import ValidationError, PermissionDenied
-        from django.http import HttpResponse, HttpResponseServerError, HttpResponseNotAllowed, HttpResponseBadRequest, Http404, HttpResponseNotFound
+        from django.http import HttpResponseServerError, HttpResponseNotAllowed, HttpResponseBadRequest, Http404, HttpResponseNotFound
 
         try:
             params = self._authenticate_signature(request) # Returns parameters without the oauth_* stuff
@@ -27,17 +27,17 @@ class RestView(object):
             response.content = response.content
             return response
 
-        except Http404, e:
+        except Http404 as e:
             return HttpResponseNotFound(
                 self._render("Not Found")
             )
 
-        except ValidationError, e:
+        except ValidationError as e:
             return HttpResponseBadRequest(
                 self._render(e.messages[0])
             )
 
-        except PermissionDenied, e:
+        except PermissionDenied as e:
             if type(e.message) == tuple: # Bad Method
                 return HttpResponseNotAllowed(
                     self._render(e.message)
@@ -47,7 +47,7 @@ class RestView(object):
                     self._render(e.message)
                 )
 
-        except Exception, e:
+        except Exception as e:
 
             # TODO: log this sort of thing
             print "\n\nUnhandled exception:\n  %s\n\n" % (e)
@@ -97,12 +97,17 @@ class RestView(object):
             closed system.
         """
 
+        from django.conf import settings
+
+        if not hasattr(settings, "REST_USE_OAUTH") or not settings.REST_USE_OAUTH:
+            return request.REQUEST
+
         import re,oauth2
 
         from django.core.exceptions import ValidationError
         from django.db.utils import IntegrityError
 
-        from rest.models import Consumer, Nonce
+        from django_rest.models import Consumer, Nonce
 
         consumer = Consumer.objects.get(pk=1)
 
@@ -129,5 +134,5 @@ class RestView(object):
         # Signature Checking
         try:
             return server.verify_request(req, consumer, token) # Assuming the nonce passes, now we validate the key
-        except Exception, e:
+        except Exception as e:
             raise ValidationError("OAuth failure: \n%s" % (e))
