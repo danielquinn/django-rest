@@ -49,8 +49,12 @@ class RestView(object):
 
         except Exception as e:
 
+            import sys,traceback
+
             # TODO: log this sort of thing
             print "\n\nUnhandled exception:\n  %s\n\n" % (e)
+            traceback.print_exc(file=sys.stdout)
+
             return HttpResponseServerError(
                 self._render("Server Error.  Please contact support")
             )
@@ -135,4 +139,4 @@ class RestView(object):
         try:
             return server.verify_request(req, consumer, token) # Assuming the nonce passes, now we validate the key
         except Exception as e:
-            raise ValidationError("OAuth failure: \n%s" % (e))
+            raise ValidationError("OAuth failure: \n%s" % e)
