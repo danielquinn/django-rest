@@ -13,17 +13,23 @@ class RestView(object):
     #
     csrf_exempt = True
 
+    request = None
+
     def __call__(self, request, *a, **kwa):
 
         method = kwa["__method"]
         del(kwa["__method"])
 
+        self.request = request
+        self._setup_data()
+
         from django.core.exceptions import ValidationError, PermissionDenied
         from django.http import HttpResponseServerError, HttpResponseNotAllowed, HttpResponseBadRequest, Http404, HttpResponseNotFound
 
         try:
-            params = self._authenticate_signature(request) # Returns parameters without the oauth_* stuff
-            response = getattr(self, method)(request, *a, **kwa)
+            params = self._authenticate_signature() # Returns parameters without the oauth_* stuff
+
+            response = getattr(self, method)(*a, **kwa)
             response.content = response.content
             return response
 
@@ -52,7 +58,7 @@ class RestView(object):
             import sys,traceback
 
             # TODO: log this sort of thing
-            print "\n\nUnhandled exception:\n  %s\n\n" % (e)
+            print "\n\nUnhandled exception:\n  %s\n\n" % e
             traceback.print_exc(file=sys.stdout)
 
             return HttpResponseServerError(
@@ -80,6 +86,20 @@ class RestView(object):
         return HttpResponse(content="", status=204)
 
 
+    def _setup_data(self):
+        if self.request.method == "GET":
+            self.request.DATA = self.request.GET
+        elif self.request.method == "POST":
+            self.request.DATA = self.request.POST
+        elif self.request.method == "PUT":
+            from urlparse import parse_qs
+            data = dict(parse_qs(self.request.raw_post_data).items())
+            for k,v in data.items():
+                if len(v) == 1:
+                    data[k] = v.pop()
+            self.request.DATA = data
+
+
     def _render(self, payload):
         """
             TODO: Switch on format
@@ -94,7 +114,17 @@ class RestView(object):
         return simplejson.dumps(payload)
 
 
-    def _authenticate_signature(self, request):
+    def _validate_request(self, required):
+
+        from django.core.exceptions import ValidationError, PermissionDenied
+
+        check = self.request.DATA.keys()
+        for k in required:
+            if k not in check:
+                raise ValidationError("This method requires the following arguments: %s" % ", ".join(required))
+
+
+    def _authenticate_signature(self):
         """
             Basic OAuth authentication.  Thankfully, we don't have to
             implement the full 3-legged authentication process as this is a
@@ -104,7 +134,7 @@ class RestView(object):
         from django.conf import settings
 
         if not hasattr(settings, "REST_USE_OAUTH") or not settings.REST_USE_OAUTH:
-            return request.REQUEST
+            return self.request.REQUEST
 
         import re,oauth2
 
@@ -119,13 +149,13 @@ class RestView(object):
         token  = oauth2.Token(key=consumer.access_key, secret=consumer.access_sec)
 
         req = None
-        if request.method == "POST":
-            req = oauth2.Request(method=request.method, url=request.build_absolute_uri(), parameters=request.POST)
-        elif request.method == "GET":
-            req = oauth2.Request(method=request.method, url=re.sub(r"\?.*", "", request.build_absolute_uri()), parameters=request.GET)
+        if self.request.method == "POST":
+            req = oauth2.Request(method=self.request.method, url=self.request.build_absolute_uri(), parameters=self.request.POST)
+        elif self.request.method == "GET":
+            req = oauth2.Request(method=self.request.method, url=re.sub(r"\?.*", "", self.request.build_absolute_uri()), parameters=self.request.GET)
 
         # Nonce Checking
-        n = request.REQUEST.get("oauth_nonce")
+        n = self.request.REQUEST.get("oauth_nonce")
         if not n:
             raise ValidationError("OAuth failure: oauth_noce")
 
