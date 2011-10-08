@@ -57,13 +57,18 @@ class RestView(object):
 
             import sys,traceback
 
+            from django.conf import settings
+
             # TODO: log this sort of thing
             print "\n\nUnhandled exception:\n  %s\n\n" % e
             traceback.print_exc(file=sys.stdout)
 
-            return HttpResponseServerError(
-                self._render("Server Error.  Please contact support")
-            )
+            if settings.DEBUG:
+                return HttpResponseServerError(self._render(u"Server error: %s" % e))
+            else:
+                return HttpResponseServerError(
+                    self._render("Server Error.  Please contact support")
+                )
 
 
     def OK(self, content):
@@ -91,7 +96,7 @@ class RestView(object):
             self.request.DATA = self.request.GET
         elif self.request.method == "POST":
             self.request.DATA = self.request.POST
-        elif self.request.method == "PUT":
+        elif self.request.method in ("PUT","DELETE",):
             from urlparse import parse_qs
             data = dict(parse_qs(self.request.raw_post_data).items())
             for k,v in data.items():
@@ -122,6 +127,14 @@ class RestView(object):
         for k in required:
             if k not in check:
                 raise ValidationError("This method requires the following arguments: %s" % ", ".join(required))
+
+
+    def _check_authenticated(self):
+
+        from django.core.exceptions import ValidationError, PermissionDenied
+
+        if not self.request.user.is_authenticated():
+            raise PermissionDenied()
 
 
     def _authenticate_signature(self):
