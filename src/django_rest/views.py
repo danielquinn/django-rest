@@ -134,7 +134,7 @@ class RestView(object):
         from django.core.exceptions import ValidationError, PermissionDenied
 
         if not self.request.user.is_authenticated():
-            raise PermissionDenied()
+            raise PermissionDenied("You must be logged in to do that.")
 
 
     def _authenticate_signature(self):
