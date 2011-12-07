@@ -1,5 +1,3 @@
-from django.views.decorators.csrf import csrf_exempt
-
 class RestView(object):
     """
         A custom REST server to keep things simpler and more extensible than
@@ -27,13 +25,14 @@ class RestView(object):
         from django.http import HttpResponseServerError, HttpResponseNotAllowed, HttpResponseBadRequest, Http404, HttpResponseNotFound
 
         try:
+
             params = self._authenticate_signature() # Returns parameters without the oauth_* stuff
 
             response = getattr(self, method)(*a, **kwa)
             response.content = response.content
             return response
 
-        except Http404 as e:
+        except Http404:
             return HttpResponseNotFound(
                 self._render("Not Found")
             )
@@ -83,12 +82,12 @@ class RestView(object):
 
     def UPDATED(self):
         from django.http import HttpResponse
-        return HttpResponse(content="", status=204)
+        return HttpResponse(status=204)
 
 
     def DELETED(self):
         from django.http import HttpResponse
-        return HttpResponse(content="", status=204)
+        return HttpResponse(status=204)
 
 
     def _setup_data(self):
@@ -121,7 +120,7 @@ class RestView(object):
 
     def _validate_request(self, required):
 
-        from django.core.exceptions import ValidationError, PermissionDenied
+        from django.core.exceptions import ValidationError
 
         check = self.request.DATA.keys()
         for k in required:
@@ -131,7 +130,7 @@ class RestView(object):
 
     def _check_authenticated(self):
 
-        from django.core.exceptions import ValidationError, PermissionDenied
+        from django.core.exceptions import PermissionDenied
 
         if not self.request.user.is_authenticated():
             raise PermissionDenied("You must be logged in to do that.")
@@ -149,7 +148,7 @@ class RestView(object):
         if not hasattr(settings, "REST_USE_OAUTH") or not settings.REST_USE_OAUTH:
             return self.request.REQUEST
 
-        import re,oauth2
+        import re, oauth2
 
         from django.core.exceptions import ValidationError
         from django.db.utils import IntegrityError
@@ -183,3 +182,14 @@ class RestView(object):
             return server.verify_request(req, consumer, token) # Assuming the nonce passes, now we validate the key
         except Exception as e:
             raise ValidationError("OAuth failure: \n%s" % e)
+
+
+    def generate_signature_with_secret(self, string):
+        """
+            For shared-secret setups, this will generate a signature.
+        """
+
+        from django.conf import settings
+        from hashlib import sha1
+
+        return sha1(string + settings.SECRET_KEY).hexdigest()
