@@ -182,14 +182,3 @@ class RestView(object):
             return server.verify_request(req, consumer, token) # Assuming the nonce passes, now we validate the key
         except Exception as e:
             raise ValidationError("OAuth failure: \n%s" % e)
-
-
-    def generate_signature_with_secret(self, string):
-        """
-            For shared-secret setups, this will generate a signature.
-        """
-
-        from django.conf import settings
-        from hashlib import sha1
-
-        return sha1(string + settings.SECRET_KEY).hexdigest()
