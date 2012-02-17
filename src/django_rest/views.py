@@ -122,8 +122,8 @@ class RestView(object):
 
         from django.core.exceptions import ValidationError
 
-        check = self.request.DATA.keys()
-        for k in required:
+        check = self.request.DATA
+        for k in required.keys():
             if k not in check:
                 raise ValidationError("This method requires the following arguments: %s" % ", ".join(required))
             if required[k] == int and not check[k].isdigit():
