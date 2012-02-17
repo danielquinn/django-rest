@@ -126,6 +126,8 @@ class RestView(object):
         for k in required:
             if k not in check:
                 raise ValidationError("This method requires the following arguments: %s" % ", ".join(required))
+            if required[k] == int and not check[k].isdigit():
+                raise ValidationError("\"%s\" must be numeric" % k)
 
 
     def _check_authenticated(self):
