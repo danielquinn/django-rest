@@ -115,6 +115,9 @@ class RestView(object):
 
         from django.core.serializers.json import simplejson
 
+        if "callback" in self.request.DATA:
+            return self.request.DATA["callback"] + "(%s);" % simplejson.dumps(payload)
+
         return simplejson.dumps(payload)
 
 
