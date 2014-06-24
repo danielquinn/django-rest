@@ -1,3 +1,15 @@
+# django-rest
+
+## Don't Use This
+
+This was written years ago, back when `django-piston` was a thing, and suites like
+[tastypie](https://github.com/toastdriven/django-tastypie) and
+[django-rest-framework](https://github.com/tomchristie/django-rest-framework/) didn't exist.
+Now that these projects are around though, this code is stagnant and lacking in the support
+and features you'll find in those projects, so go use them instead.
+
+--
+
 Requires:
     oauth2
     django
